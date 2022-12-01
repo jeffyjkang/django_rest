@@ -30,3 +30,7 @@ pagination:
 page number pagination: use a page number to paginate res
 limitOffset pagination: use a limit anf offset fields to more finely paginate res
 cursor pagination: use db cursor to paginate res
+
+simple curl commands:
+curl -X POST http://localhost:8000/api/v1/products/new -d price=1.00 -d name='My Product' -d description='Hello World'
+curl -X DELETE http://localhost:8000/api/v1/products/5/destroy

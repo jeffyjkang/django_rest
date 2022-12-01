@@ -1,4 +1,5 @@
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, CreateAPIView, DestroyAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.exceptions import ValidationError
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
 from rest_framework.pagination import LimitOffsetPagination
@@ -30,3 +31,50 @@ class ProductList(ListAPIView):
         sale_end__gte=now,
       )
     return queryset
+
+class ProductCreate(CreateAPIView):
+  serializer_class = ProductSerializer
+  def create(self, request, *args, **kwargs):
+    try:
+      price = request.data.get('price')
+      if price is not None and float(price) <= 0.0:
+        raise ValidationError({'price': 'Must be above $0.00'})
+    except ValueError:
+      raise ValidationError({'price': 'A valid number is required'})
+    return super().create(request, *args, **kwargs)
+
+class ProductDestroy(DestroyAPIView):
+  queryset = Product.objects.all()
+  lookup_field = 'id'
+  def delete(self, request, *args, **kwargs):
+    product_id = request.data.get('id')
+    res = super().delete(request, *args, **kwargs)
+    if res.status_code == 204:
+      from django.core.cache import cache
+      cache.delete('product_data_{}'.format(product_id))
+    return res
+
+class ProductRetrieveUpdateDestroy(RetrieveUpdateDestroyAPIView):
+  queryset = Product.objects.all()
+  lookup_field = 'id'
+  serializer_class = ProductSerializer
+
+  def delete(self, request, *args, **kwargs):
+    product_id = request.data.get('id')
+    res = super().delete(request, *args, **kwargs)
+    if res.status_code == 204:
+      from django.core.cache import cache
+      cache.delete('product_data_{}'.format(product_id))
+    return res
+
+  def update(self, req, *args, **kwargs):
+    res = super().update(req, *args, **kwargs)
+    if res.status_code == 200:
+      from django.core.cache import cache
+      product = res.data
+      cache.set('product_data{}'.format(product['id']), {
+        'name': product['name'],
+        'description': product['description'],
+        'price': product['price'],
+      })
+    return res
