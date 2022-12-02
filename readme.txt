@@ -62,3 +62,7 @@ eg for cart in the django shell:
 
 serializer's validated_data:
 data that has already passed through serializer and model validation process, used to create or update a model.
+
+api test case:
+all test case classes implement the same interface as Django's TestCase class
+remember to use the JSON format when testing API client requests: self.client.post(url, data, format='json')
